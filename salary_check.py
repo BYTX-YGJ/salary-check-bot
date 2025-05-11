@@ -466,4 +466,8 @@ def run_salary_check_process(pat):
 # 使用示例
 if __name__ == "__main__":
     github_pat = os.getenv("EXCEL_GITHUB_PAT")
+    print("asdd")
+    if not github_pat:
+        print("asd")
+        raise ValueError("请设置 GITHUB_PAT 环境变量")
     run_salary_check_process(github_pat)
