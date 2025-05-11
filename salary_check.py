@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+from email.utils import formataddr
 import smtplib
 import email
-import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -10,63 +10,99 @@ import requests
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
-
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
+github_pat = os.getenv("EXCEL_GITHUB_PAT")
+smtp_user = os.getenv("SMTP_USER")
+smtp_pass = os.getenv("SMTP_PASS")
 
 def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     """
-    发送工资核对提醒邮件（从环境变量读取SMTP配置）
-    """
-    # 从环境变量读取配置
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.qiye.aliyun.com")
-    smtp_port = os.getenv("SMTP_PORT", "465")
-    reply_to = os.getenv("REPLY_TO", "")
+    发送工资核对提醒邮件（支持HTML表格内容）
 
-    # 邮件配置
+    参数:
+        to_email (str/list): 收件人邮箱，可以是单个字符串或多个邮箱的列表
+        content_table (str): HTML表格内容
+        subject (str): 邮件主题，默认为'工资核对提醒'
+    """
+    # region SMTP认证配置
+    username = smtp_user
+    password = smtp_pass
+    # 发件人设置
+    From = formataddr(['工资核对提醒', username])
+    replyto = 'hr@boyuegf.com'  # 设置回信地址
+    #endregion
+    # region 处理收件人格式（支持字符串或列表）
+    if isinstance(to_email, str):
+        to = to_email
+    else:
+        to = ','.join(to_email)
+    #endregion
+    # region 构建邮件
     msg = MIMEMultipart('alternative')
-    msg['From'] = formataddr(['工资核对提醒', smtp_user])
-    msg['Reply-to'] = reply_to
-    msg['To'] = to_email if isinstance(to_email, str) else ','.join(to_email)
+    msg['From'] = From
+    msg['Reply-to'] = replyto
+    msg['To'] = to
     msg['Subject'] = subject
     msg['Message-id'] = email.utils.make_msgid()
     msg['Date'] = email.utils.formatdate()
-    msg.attach(MIMEText(content_table, _subtype='html', _charset='UTF-8'))
 
-    # 发送邮件
+    # 添加HTML内容
+    msg.attach(MIMEText(content_table, _subtype='html', _charset='UTF-8'))
+    # endregion
+    # region 连接SMTP服务器并发送
     try:
-        client = smtplib.SMTP_SSL(smtp_server, int(smtp_port))
-        client.login(smtp_user, smtp_pass)
-        client.sendmail(smtp_user, to_email.split(',') if isinstance(to_email, str) else to_email, msg.as_string())
-        logger.info(f"邮件发送成功 -> {to_email}")
+        # 尝试SSL连接
+        client = smtplib.SMTP_SSL('smtp.qiye.aliyun.com', 465)
+        print('SMTP_SSL连接成功')
+    except Exception as e1:
+        try:
+            # 尝试普通连接
+            client = smtplib.SMTP('smtp.qiye.aliyun.com', 25, timeout=5)
+            print('SMTP连接成功')
+        except Exception as e2:
+            print('连接服务器失败:', str(e2))
+            return False
+
+    try:
+        client.login(username, password)
+        print('登录成功')
+        client.sendmail(username, [to] if isinstance(to, str) else to.split(','), msg.as_string())
+        print('邮件发送成功')
         return True
     except Exception as e:
-        logger.error(f"邮件发送失败: {str(e)}")
+        print('邮件发送失败:', str(e))
         return False
     finally:
         client.quit()
-
+    # endregion
 
 def get_salary_data(salary_month):
     """
-    从API获取工资数据（带错误重试机制）
+    获取工资表数据（模拟Power Query功能）
+
+    参数:
+        salary_month (str): 工资月份，格式如'2023-05'
+
+    返回:
+        pd.DataFrame: 处理后的工资表数据
     """
+    # 1. 设置请求URL和头部
     url = "http://121.28.192.238:8562/salary-bytx/saUploadPayroll/getExcel"
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json;charset=UTF-8",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36..."
     }
-    payload = {
+
+    # 2. 构建请求数据
+    post_data = {
         "action": "",
-        "header": {"requestId": "1", "timeStamp": "1", "accessToken": "", "appCode": "app_01", "appSecretKey": "1"},
+        "header": {
+            "requestId": "1",
+            "timeStamp": "1",
+            "accessToken": "",
+            "appCode": "app_01",
+            "appSecretKey": "1"
+        },
         "body": {
             "saMonth": salary_month,
             "currentUserId": "0301592",
@@ -77,121 +113,254 @@ def get_salary_data(salary_month):
     }
 
     try:
-        logger.info(f"正在获取 {salary_month} 工资数据...")
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        # 3. 发送POST请求
+        response = requests.post(
+            url,
+            headers=headers,
+            json=post_data,
+            timeout=10
+        )
         response.raise_for_status()
 
+        # 4. 读取Excel数据（假设返回的是Excel二进制流）
+        from io import BytesIO
         df = pd.read_excel(BytesIO(response.content), sheet_name="Sheet0")
+
+        # 5. 数据清洗（对应Power Query步骤）
+        # 重命名列（如果第一行是标题）
         df.columns = df.iloc[0] if 'BG' not in df.columns else df.columns
         df = df.iloc[1:] if 'BG' not in df.columns else df
 
-        # 数据清洗
+        # 转换数据类型
         df = df.astype({
-            'BG': 'str', '部门': 'str', '基地': 'str',
-            '项目组': 'str', '上传人': 'str', '终版上传人': 'str', '备注': 'str'
+            'BG': 'str',
+            '部门': 'str',
+            '基地': 'str',
+            '项目组': 'str',
+            '上传人': 'str',
+            '终版上传人': 'str',
+            '备注': 'str'
         })
         df['工资月份'] = pd.to_datetime(df['工资月份'])
         df['上传时间'] = pd.to_datetime(df['上传时间'])
-        df['终版上传时间'] = pd.to_datetime(df['终版上传时间'], errors='coerce')
+        df['终版上传时间'] = pd.to_datetime(df['终版上传时间'], errors='coerce')  # 处理可能的空值
 
-        # 筛选有效数据
-        df = df[
-            (~df['项目组'].str.contains('共享中心|劳务派遣|招聘中台平台', na=False)) &
-            (~df['基地'].str.contains('总部职能', na=False))
-            ].reset_index(drop=True)
+        # 6. 筛选行（排除特定项目组）
+        filter_condition = (
+                ~df['项目组'].str.contains('共享中心|劳务派遣|招聘中台平台', na=False) &
+                ~df['基地'].str.contains('总部职能', na=False)
+        )
+        df = df[filter_condition].reset_index(drop=True)
 
-        logger.info(f"成功获取 {len(df)} 条工资记录")
         return df
 
     except Exception as e:
-        logger.error(f"获取工资数据失败: {str(e)}")
-        return pd.DataFrame()
+        print(f"获取数据失败: {str(e)}")
+        return pd.DataFrame()  # 返回空DataFrame
 
+def get_github_excel(github_pat):
+    """
+    从GitHub仓库获取Excel文件
 
-def get_github_data(repo_path, sheet_name="Sheet1"):
-    """从GitHub仓库获取Excel数据（通用方法）"""
-    github_pat = os.getenv("GITHUB_PAT")
-    url = f"https://api.github.com/repos/{repo_path}"
+    参数:
+        github_pat (str): GitHub个人访问令牌
+
+    返回:
+        pd.DataFrame: 包含项目与核对人关系的DataFrame
+    """
+    url = "https://api.github.com/repos/BYTX-YGJ/excel/contents/%E5%B7%A5%E8%B5%84%E6%A0%B8%E7%AE%97%E4%BA%BA%E7%BB%9F%E8%AE%A1.xlsx"
+
     headers = {
         "Authorization": f"token {github_pat}",
         "Accept": "application/vnd.github.v3.raw"
     }
+
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        return pd.read_excel(BytesIO(response.content), sheet_name=sheet_name)
+
+        # 读取Excel数据
+        df = pd.read_excel(BytesIO(response.content), sheet_name="Sheet1")
+        return df
+
     except Exception as e:
-        logger.error(f"从GitHub获取数据失败: {str(e)}")
+        print(f"从GitHub获取数据失败: {str(e)}")
         return pd.DataFrame()
 
+def get_github_excel1(github_pat):
+    """
+    从GitHub仓库获取Excel文件
 
-def send_complete_salary_report(final_df, github_df1, hours=21.1):
-    """发送完整的工资核对报告"""
+    参数:
+        github_pat (str): GitHub个人访问令牌
+
+    返回:
+        pd.DataFrame: 包含项目与核对人关系的DataFrame
+    """
+    url = "https://api.github.com/repos/BYTX-YGJ/excel/contents/邮箱维护.xlsx"
+
+    headers = {
+        "Authorization": f"token {github_pat}",
+        "Accept": "application/vnd.github.v3.raw"
+    }
+
     try:
-        # 时间计算
-        now = datetime.now()
-        time_threshold = now - timedelta(hours=hours)
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
 
-        # 数据分类
-        recent_records = final_df[(final_df['上传时间'] >= time_threshold) & (final_df['终版上传时间'].isna())].copy()
-        pending_records = final_df[(final_df['终版上传时间'].isna()) & (final_df['上传时间'] < time_threshold)].copy()
-        completed_records = final_df[final_df['终版上传时间'].notna()].copy()
-
-        # 添加状态标签
-        if not recent_records.empty:
-            recent_records.loc[:, '状态'] = '待核对（新提交）'
-        if not pending_records.empty:
-            pending_records.loc[:, '状态'] = '待核对（历史未完成）'
-        if not completed_records.empty:
-            completed_records.loc[:, '状态'] = '已完成'
-
-        # 合并记录
-        all_records = pd.concat([recent_records, pending_records, completed_records], ignore_index=True)
-
-        # 格式化时间
-        time_format = '%Y-%m-%d %H:%M'
-        all_records['上传时间'] = pd.to_datetime(all_records['上传时间']).dt.strftime(time_format)
-        all_records['终版上传时间'] = pd.to_datetime(all_records['终版上传时间'], errors='coerce').dt.strftime(
-            time_format)
-        all_records['工资月份'] = pd.to_datetime(all_records['工资月份']).dt.strftime('%Y-%m')
-
-        # 检查是否有待核对记录
-        if recent_records.empty and pending_records.empty:
-            logger.info("没有需要核对的工资记录")
-            return False
-
-        # 分组发送邮件
-        for checker, group in all_records.groupby('核对人'):
-            to_email = github_df1.loc[github_df1['核对人'] == checker, '邮箱'].values
-            if len(to_email) == 0:
-                logger.warning(f"未找到 {checker} 的邮箱地址")
-                continue
-
-            html_content = create_status_html(group)
-            send_salary_reminder(
-                to_email=to_email[0],
-                content_table=html_content,
-                subject=f"【您的待核对】{now.strftime('%m-%d')}"
-            )
-        return True
+        # 读取Excel数据
+        df = pd.read_excel(BytesIO(response.content), sheet_name="Sheet1")
+        return df
 
     except Exception as e:
-        logger.error(f"发送报告时出错: {str(e)}")
+        print(f"从GitHub获取数据失败: {str(e)}")
+        return pd.DataFrame()
+
+def merge_data_by_project(salary_df, checker_df):
+    """
+    以项目组为主键合并数据，保留salary_df所有项目，补充checker_df的核对人信息
+
+    参数:
+        salary_df (pd.DataFrame): 第一个查询的数据（含项目组，无核对人）
+        checker_df (pd.DataFrame): 第二个查询的数据（含项目和核对人）
+
+    返回:
+        pd.DataFrame: 合并后的数据
+    """
+    # 标准化列名（确保都有"项目组"列）
+    checker_df = checker_df.rename(columns={'项目': '项目组'})
+
+    # 左连接合并（保留salary_df所有项目组）
+    merged_df = pd.merge(
+        left=salary_df,
+        right=checker_df[['项目组', '工资核对人']],  # 只取需要的列
+        on='项目组',
+        how='left'
+    )
+
+    # 重命名列（保持一致性）
+    merged_df = merged_df.rename(columns={'工资核对人': '核对人'})
+
+    return merged_df
+
+def send_complete_salary_report(final_df,github_df1,hours):
+    """
+    发送完整的工资核对报告，包含：
+    - 最近1小时新提交记录（待核对）
+    - 历史未核对记录（待核对）
+    - 已完成核对记录（有终版上传时间）
+    """
+    # 检查必要列是否存在
+    required_columns = ['BG', '部门', '基地', '项目组', '工资月份',
+                        '上传时间', '终版上传时间', '核对人']
+    if not all(col in final_df.columns for col in required_columns):
+        print("数据中缺少必要列！")
         return False
 
+    # 转换时间列
+    final_df['上传时间'] = pd.to_datetime(final_df['上传时间'])
+    final_df['终版上传时间'] = pd.to_datetime(final_df['终版上传时间'], errors='coerce')
+
+    # 时间阈值：当前时间前一小时
+    time_threshold = datetime.now() - timedelta(hours=hours)
+
+    # 1. 最近1小时内的新提交记录
+    recent_records = final_df[(final_df['上传时间'] >= time_threshold)&(final_df['终版上传时间'].isna())].copy()
+
+    # 2. 历史未完成记录（无终版上传时间，且上传时间早于1小时以前）
+    pending_records = final_df[
+        (final_df['终版上传时间'].isna()) &
+        (final_df['上传时间'] < time_threshold)
+    ].copy()
+
+    # 3. 已完成记录（有终版上传时间）
+    completed_records = final_df[final_df['终版上传时间'].notna()].copy()
+
+    # 没有待核对的记录则不发送
+    if recent_records.empty and pending_records.empty:
+        print("没有需要核对的工资记录")
+        return False
+
+    # 为每类记录添加状态标签（仅在非空时设置）
+    if not recent_records.empty:
+        recent_records.loc[:, '状态'] = '待核对（新提交）'
+    if not pending_records.empty:
+        pending_records.loc[:, '状态'] = '待核对（历史未完成）'
+    if not completed_records.empty:
+        completed_records.loc[:, '状态'] = '已完成'
+
+    # 合并所有记录
+    all_records = pd.concat([recent_records, pending_records, completed_records], ignore_index=True)
+
+    # 格式化时间列
+    time_format = '%Y-%m-%d %H:%M'
+    all_records['上传时间'] = pd.to_datetime(all_records['上传时间'], errors='coerce').dt.strftime(time_format)
+    all_records['终版上传时间'] = pd.to_datetime(all_records['终版上传时间'], errors='coerce').dt.strftime(time_format)
+    all_records['工资月份'] = pd.to_datetime(all_records['工资月份'], errors='coerce').dt.strftime('%Y-%m')
+
+    # 指定需要展示的列
+    display_columns = ['BG', '部门', '基地', '项目组', '工资月份',
+                       '上传时间', '终版上传时间', '状态', '核对人']
+    all_records = all_records[display_columns]
+
+    now = datetime.now()
+    time_tolerance = timedelta(minutes=5)
+    scheduled_times = [
+        now.replace(hour=9, minute=0, second=0, microsecond=0),
+        now.replace(hour=13, minute=30, second=0, microsecond=0)
+    ]
+    is_scheduled_time = any(abs(now - scheduled_time) <= time_tolerance for scheduled_time in scheduled_times)
+
+
+    # 分组按核对人发送邮件（仅满足条件才发）
+    for checker, group in all_records.groupby('核对人'):
+        has_new = (group['状态'] == '待核对（新提交）').any()
+
+        if has_new or is_scheduled_time:
+            # 从github_df1中查找邮箱
+            to_email = github_df1.loc[github_df1['核对人'] == checker, '邮箱'].values
+            if len(to_email) == 0:
+                print(f"未找到 {checker} 的邮箱地址，跳过发送")
+                continue
+            to_email = to_email[0]
+            html_content = create_status_html(group)
+            send_salary_reminder(
+                to_email=to_email,
+                content_table=html_content,
+                subject=f"【您的待核对】{now.strftime('%m-%d')} "
+            )
+        else:
+            print(f"{checker} 无需发送邮件（无新增，非定时）")
+    return True
 
 def create_status_html(df):
-    """生成带样式的HTML报告"""
+    """
+    生成按状态分组的HTML报告
+
+    参数:
+        df (pd.DataFrame): 包含状态标签的完整数据
+
+    返回:
+        str: 美化后的HTML内容
+    """
+    # 按状态分组
     status_groups = {
         '待核对（新提交）': df[df['状态'] == '待核对（新提交）'],
         '待核对（历史未完成）': df[df['状态'] == '待核对（历史未完成）'],
         '已完成': df[df['状态'] == '已完成']
     }
 
+    # 生成每个组的表格
     tables_html = ""
     for status, group_df in status_groups.items():
         if not group_df.empty:
-            table_html = group_df.to_html(index=False, classes='salary-table', border=0, justify='center', na_rep='')
+            table_html = group_df.to_html(
+                index=False,
+                classes='salary-table',
+                border=0,
+                justify='center',
+                na_rep=''
+            )
             tables_html += f"""
             <div class="status-section">
                 <h3>{status}（共{len(group_df)}条）</h3>
@@ -199,7 +368,8 @@ def create_status_html(df):
             </div>
             """
 
-    return f"""
+    # 完整HTML结构
+    beautiful_html = f"""
     <html>
         <head>
             <style>
@@ -229,7 +399,14 @@ def create_status_html(df):
                     border-bottom: 1px solid #eee;
                     text-align: center;
                 }}
-                .footer {{ margin-top: 20px; color: #777; font-size: 12px; text-align: center; }}
+                .status-pending {{ color: #d32f2f; font-weight: bold; }}
+                .status-completed {{ color: #388e3c; }}
+                .footer {{
+                    margin-top: 20px;
+                    color: #777;
+                    font-size: 12px;
+                    text-align: center;
+                }}
             </style>
         </head>
         <body>
@@ -246,44 +423,42 @@ def create_status_html(df):
         </body>
     </html>
     """
-
+    return beautiful_html
 
 def get_last_month_str():
-    """获取上个月的年月字符串（格式：YYYY-MM）"""
     today = datetime.today().replace(day=1)
     last_month = today - timedelta(days=1)
     return last_month.strftime('%Y-%m')
 
+def run_salary_check_process(pat):
+    """
+    工资核对流程执行函数：
+    1. 获取上月工资数据
+    2. 获取 GitHub 上的核对人信息
+    3. 合并处理后发送邮件报告
+    """
+    print("▶ 开始工资核对流程...")
 
-def main():
-    """主执行函数"""
-    logger.info("▶ 开始工资核对流程")
-
-    # 1. 获取数据
+    # 1. 获取原始工资数据（上一个月）
     salary_month = get_last_month_str()
+    print(f" - 获取工资数据：{salary_month}")
     salary_df = get_salary_data(salary_month)
-    if salary_df.empty:
-        logger.error("获取工资数据失败，流程终止")
-        return
 
-    # 2. 获取核对人信息
-    checker_df = get_github_data("BYTX-YGJ/excel/contents/工资核算人统计.xlsx")
-    email_df = get_github_data("BYTX-YGJ/excel/contents/邮箱维护.xlsx")
-    if checker_df.empty or email_df.empty:
-        logger.error("获取核对人信息失败，流程终止")
-        return
+    # 2. 获取GitHub上的核对人信息（PAT 应该来自安全来源）
+    print(" - 获取 GitHub 信息")
+    github_df = get_github_excel(pat)
+    github_df1 = get_github_excel1(pat)  # 包含邮箱
 
-    # 3. 合并数据并发送报告
-    final_df = pd.merge(
-        salary_df,
-        checker_df[['项目组', '工资核对人']].rename(columns={'工资核对人': '核对人'}),
-        on='项目组',
-        how='left'
-    )
-    send_complete_salary_report(final_df, email_df)
+    # 3. 合并 & 发送核对报告
+    if not salary_df.empty:
+        final_df = merge_data_by_project(salary_df, github_df)
+        send_complete_salary_report(final_df, github_df1, 1.1)
+    else:
+        print("❗ 没有有效的工资数据可供处理")
 
-    logger.info("✅ 工资核对流程完成")
+    print("✅ 工资核对流程结束。")
 
-
+# 使用示例
 if __name__ == "__main__":
-    main()
+    github_pat = github_pat  # 推荐从环境变量或安全存储读取
+    run_salary_check_process(github_pat)
