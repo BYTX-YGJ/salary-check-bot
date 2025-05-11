@@ -312,7 +312,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
     time_tolerance = timedelta(minutes=10)
     scheduled_times = [
         now.replace(hour=9, minute=0, second=0, microsecond=0),
-        now.replace(hour=13, minute=30, second=0, microsecond=0)
+        now.replace(hour=14, minute=0, second=0, microsecond=0)
     ]
     is_scheduled_time = any(abs(now - scheduled_time) <= time_tolerance for scheduled_time in scheduled_times)
 
