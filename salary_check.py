@@ -454,7 +454,7 @@ def run_salary_check_process(pat):
     # 3. 合并 & 发送核对报告
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
-        send_complete_salary_report(final_df, github_df1, 21.1)
+        send_complete_salary_report(final_df, github_df1, 1.1)
     else:
         print("❗ 没有有效的工资数据可供处理")
 
