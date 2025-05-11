@@ -18,7 +18,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run salary check
         env:
-          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          EXCEL_GITHUB_PAT: ${{ secrets.EXCEL_GITHUB_PAT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_SERVER: "smtp.qiye.aliyun.com"
