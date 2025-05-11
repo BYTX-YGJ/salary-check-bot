@@ -28,7 +28,7 @@ def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     smtp_pass = os.getenv("SMTP_PASS")
     smtp_server = os.getenv("SMTP_SERVER", "smtp.qiye.aliyun.com")
     smtp_port = os.getenv("SMTP_PORT", "465")
-    reply_to = os.getenv("REPLY_TO", "hr@boyuegf.com")
+    reply_to = os.getenv("REPLY_TO", "")
 
     # 邮件配置
     msg = MIMEMultipart('alternative')
