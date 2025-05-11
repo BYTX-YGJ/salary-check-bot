@@ -26,9 +26,6 @@ def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     smtp_user = os.getenv("SMTP_USER")
     smtp_pass = os.getenv("SMTP_PASS")
 
-
-    # smtp_user = 'yangguijiang@boyuegf.com'
-    # smtp_pass = 'OxcKa7EHKnFplt4o'
     username = smtp_user
     password = smtp_pass
     # 发件人设置
@@ -309,7 +306,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
     all_records = all_records[display_columns]
 
     now = datetime.now()
-    time_tolerance = timedelta(minutes=5)
+    time_tolerance = timedelta(minutes=10)
     scheduled_times = [
         now.replace(hour=9, minute=0, second=0, microsecond=0),
         now.replace(hour=13, minute=30, second=0, microsecond=0)
