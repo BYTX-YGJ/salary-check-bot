@@ -375,7 +375,7 @@ def create_status_html(df):
 
     # 完整HTML结构
     # 获取当前北京时间
-    now_beijing = datetime.now()+ timedelta(hours=8)
+    now_beijing = (datetime.now()+ timedelta(hours=8)).strftime("%Y-%m-%d-%H-%M-%S")
     beautiful_html = f"""
     <html>
         <head>
@@ -459,7 +459,7 @@ def run_salary_check_process(pat):
     # 3. 合并 & 发送核对报告
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
-        send_complete_salary_report(final_df, github_df1, 11.1)
+        send_complete_salary_report(final_df, github_df1, 31.1)
     else:
         print("❗ 没有有效的工资数据可供处理")
 
