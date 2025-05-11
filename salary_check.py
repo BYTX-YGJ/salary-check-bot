@@ -265,7 +265,8 @@ def send_complete_salary_report(final_df,github_df1,hours):
 
     # 时间阈值：当前时间前一小时
     time_threshold = datetime.now() - timedelta(hours=hours)
-    print(time_threshold)
+    print("timedelta(hours=hours)",timedelta(hours=hours))
+    print("time_threshold",time_threshold)
     # 1. 最近1小时内的新提交记录
     recent_records = final_df[(final_df['上传时间'] >= time_threshold)&(final_df['终版上传时间'].isna())].copy()
 
