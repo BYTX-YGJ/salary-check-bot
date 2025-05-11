@@ -10,7 +10,7 @@ import requests
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
-
+import pytz
 
 
 def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
@@ -264,7 +264,9 @@ def send_complete_salary_report(final_df,github_df1,hours):
     final_df['终版上传时间'] = pd.to_datetime(final_df['终版上传时间'], errors='coerce')
 
     # 时间阈值：当前时间前一小时
-    time_threshold = datetime.now() - timedelta(hours=hours)
+    # 设置北京时区
+    beijing_tz = pytz.timezone('Asia/Shanghai')
+    time_threshold = datetime.now(beijing_tz) - timedelta(hours=hours)
     print("timedelta(hours=hours)",timedelta(hours=hours))
     print("time_threshold",time_threshold)
     # 1. 最近1小时内的新提交记录
@@ -306,7 +308,9 @@ def send_complete_salary_report(final_df,github_df1,hours):
                        '上传时间', '终版上传时间', '状态', '核对人']
     all_records = all_records[display_columns]
 
-    now = datetime.now()
+    # 设置北京时区
+    beijing_tz = pytz.timezone('Asia/Shanghai')
+    now = datetime.now(beijing_tz)
     time_tolerance = timedelta(minutes=10)
     scheduled_times = [
         now.replace(hour=9, minute=0, second=0, microsecond=0),
@@ -372,6 +376,10 @@ def create_status_html(df):
             """
 
     # 完整HTML结构
+    # 设置北京时区
+    beijing_tz = pytz.timezone('Asia/Shanghai')
+    # 获取当前北京时间
+    now_beijing = datetime.now(beijing_tz).strftime('%Y-%m-%d %H:%M:%S')
     beautiful_html = f"""
     <html>
         <head>
@@ -420,7 +428,7 @@ def create_status_html(df):
                 {tables_html}
                 <div class="footer">
                     <p>本邮件由系统自动发送，请勿直接回复</p>
-                    <p>生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p>生成时间：{now_beijing}</p>
                 </div>
             </div>
         </body>
@@ -455,7 +463,7 @@ def run_salary_check_process(pat):
     # 3. 合并 & 发送核对报告
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
-        send_complete_salary_report(final_df, github_df1, 1.1)
+        send_complete_salary_report(final_df, github_df1, 11.1)
     else:
         print("❗ 没有有效的工资数据可供处理")
 
