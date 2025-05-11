@@ -3,6 +3,7 @@ name: Salary Check Reminder
 on:
   schedule:
     - cron: '0 1-11 8-14 * *'  # 每月10-18号，UTC 0:30-10:30（北京时间8:30-18:30）
+    - cron: '45 14 10-18 * *'
   workflow_dispatch:
 
 jobs:
