@@ -11,8 +11,12 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
 github_pat = os.getenv("EXCEL_GITHUB_PAT")
-smtp_user = os.getenv("SMTP_USER")
-smtp_pass = os.getenv("SMTP_PASS")
+# smtp_user = os.getenv("SMTP_USER")
+# smtp_pass = os.getenv("SMTP_PASS")
+
+
+smtp_user = 'yangguijiang@boyuegf.com'
+smtp_pass = 'OxcKa7EHKnFplt4o'
 
 def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     """
@@ -452,7 +456,7 @@ def run_salary_check_process(pat):
     # 3. 合并 & 发送核对报告
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
-        send_complete_salary_report(final_df, github_df1, 1.1)
+        send_complete_salary_report(final_df, github_df1, 21.1)
     else:
         print("❗ 没有有效的工资数据可供处理")
 
