@@ -125,7 +125,7 @@ def get_github_data(repo_path, sheet_name="Sheet1"):
         return pd.DataFrame()
 
 
-def send_complete_salary_report(final_df, github_df1, hours=1.1):
+def send_complete_salary_report(final_df, github_df1, hours=21.1):
     """发送完整的工资核对报告"""
     try:
         # 时间计算
