@@ -375,7 +375,7 @@ def create_status_html(df):
 
     # 完整HTML结构
     # 获取当前北京时间
-    now_beijing = (datetime.now()+ timedelta(hours=8)).strftime("%Y-%m-%d-%H-%M-%S")
+    now_beijing = (datetime.now()+ timedelta(hours=8)).strftime("%Y-%m-%d-%H:%M:%S")
     beautiful_html = f"""
     <html>
         <head>
