@@ -10,7 +10,7 @@ import requests
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
-import pytz
+
 
 
 def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
@@ -264,9 +264,8 @@ def send_complete_salary_report(final_df,github_df1,hours):
     final_df['终版上传时间'] = pd.to_datetime(final_df['终版上传时间'], errors='coerce')
 
     # 时间阈值：当前时间前一小时
-    # 设置北京时区
-    beijing_tz = pytz.timezone('Asia/Shanghai')
-    time_threshold = datetime.now(beijing_tz) - timedelta(hours=hours)
+
+    time_threshold = datetime.now() - timedelta(hours=hours)+ timedelta(hours=8)
     print("timedelta(hours=hours)",timedelta(hours=hours))
     print("time_threshold",time_threshold)
     # 1. 最近1小时内的新提交记录
@@ -309,8 +308,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
     all_records = all_records[display_columns]
 
     # 设置北京时区
-    beijing_tz = pytz.timezone('Asia/Shanghai')
-    now = datetime.now(beijing_tz)
+    now = datetime.now()+ timedelta(hours=8)
     time_tolerance = timedelta(minutes=10)
     scheduled_times = [
         now.replace(hour=9, minute=0, second=0, microsecond=0),
@@ -376,10 +374,8 @@ def create_status_html(df):
             """
 
     # 完整HTML结构
-    # 设置北京时区
-    beijing_tz = pytz.timezone('Asia/Shanghai')
     # 获取当前北京时间
-    now_beijing = datetime.now(beijing_tz).strftime('%Y-%m-%d %H:%M:%S')
+    now_beijing = datetime.now()+ timedelta(hours=8)
     beautiful_html = f"""
     <html>
         <head>
