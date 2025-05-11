@@ -10,13 +10,8 @@ import requests
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
-github_pat = os.getenv("EXCEL_GITHUB_PAT")
-# smtp_user = os.getenv("SMTP_USER")
-# smtp_pass = os.getenv("SMTP_PASS")
 
 
-smtp_user = 'yangguijiang@boyuegf.com'
-smtp_pass = 'OxcKa7EHKnFplt4o'
 
 def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     """
@@ -28,6 +23,12 @@ def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
         subject (str): 邮件主题，默认为'工资核对提醒'
     """
     # region SMTP认证配置
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+
+
+    # smtp_user = 'yangguijiang@boyuegf.com'
+    # smtp_pass = 'OxcKa7EHKnFplt4o'
     username = smtp_user
     password = smtp_pass
     # 发件人设置
@@ -464,5 +465,5 @@ def run_salary_check_process(pat):
 
 # 使用示例
 if __name__ == "__main__":
-    github_pat = github_pat  # 推荐从环境变量或安全存储读取
+    github_pat = os.getenv("EXCEL_GITHUB_PAT")
     run_salary_check_process(github_pat)
