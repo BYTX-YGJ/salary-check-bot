@@ -30,7 +30,7 @@ def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
     password = smtp_pass
     # 发件人设置
     From = formataddr(['工资核对提醒', username])
-    replyto = 'hr@boyuegf.com'  # 设置回信地址
+    replyto = ''  # 设置回信地址
     #endregion
     # region 处理收件人格式（支持字符串或列表）
     if isinstance(to_email, str):
@@ -430,7 +430,7 @@ def create_status_html(df):
                 </div>
                 {tables_html}
                 <div class="footer">
-                    <p>本邮件由系统自动发送，请勿直接回复</p>
+                    <p>本邮件由系统自动发送</p>
                     <p>生成时间：{now_beijing}</p>
                 </div>
             </div>
