@@ -280,6 +280,11 @@ def send_complete_salary_report(final_df,github_df1,hours):
     # 3. 已完成记录（有终版上传时间）
     completed_records = final_df[final_df['终版上传时间'].notna()].copy()
 
+    # 4.未上传的
+    not_submitted = final_df[
+        (final_df['终版上传时间'].isna()) &
+        (final_df['上传时间'].isna())
+    ].copy()
     # 没有待核对的记录则不发送
     if recent_records.empty and pending_records.empty:
         print("没有需要核对的工资记录")
@@ -292,9 +297,10 @@ def send_complete_salary_report(final_df,github_df1,hours):
         pending_records.loc[:, '状态'] = '待核对（历史未完成）'
     if not completed_records.empty:
         completed_records.loc[:, '状态'] = '已完成'
-
+    if not not_submitted.empty:
+        not_submitted.loc[:, '状态'] = '未提交'
     # 合并所有记录
-    all_records = pd.concat([recent_records, pending_records, completed_records], ignore_index=True)
+    all_records = pd.concat([recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
 
     # 格式化时间列
     time_format = '%Y-%m-%d %H:%M'
@@ -352,7 +358,8 @@ def create_status_html(df):
     status_groups = {
         '待核对（新提交）': df[df['状态'] == '待核对（新提交）'],
         '待核对（历史未完成）': df[df['状态'] == '待核对（历史未完成）'],
-        '已完成': df[df['状态'] == '已完成']
+        '已完成': df[df['状态'] == '已完成'],
+        '未提交': df[df['状态'] == '未提交']
     }
 
     # 生成每个组的表格
