@@ -28,6 +28,7 @@ def send_salary_reminder(to_email, content_table, subject='工资核对提醒'):
 
     username = smtp_user
     password = smtp_pass
+
     # 发件人设置
     From = formataddr(['工资核对提醒', username])
     replyto = ''  # 设置回信地址
@@ -147,13 +148,16 @@ def get_salary_data(salary_month):
         df['上传时间'] = pd.to_datetime(df['上传时间'])
         df['终版上传时间'] = pd.to_datetime(df['终版上传时间'], errors='coerce')  # 处理可能的空值
 
+        # 将'成本是否核对'列中的空值转为'否'
+        if '成本是否核对' in df.columns:
+            df['成本是否核对'] = df['成本是否核对'].fillna('否')
+
         # 6. 筛选行（排除特定项目组）
         filter_condition = (
                 ~df['项目组'].str.contains('共享中心|劳务派遣|招聘中台平台', na=False) &
                 ~df['基地'].str.contains('总部职能', na=False)
         )
         df = df[filter_condition].reset_index(drop=True)
-
         return df
 
     except Exception as e:
@@ -285,6 +289,16 @@ def send_complete_salary_report(final_df,github_df1,hours):
         (final_df['终版上传时间'].isna()) &
         (final_df['上传时间'].isna())
     ].copy()
+
+    # 5. 成本未核对的
+    # 从 recent_records 中筛选成本未核对的记录
+    recent_unchecked = recent_records[recent_records['成本是否核对'] == '否'].copy()
+    # 从 pending_records 中筛选成本未核对的记录
+    pending_unchecked = pending_records[pending_records['成本是否核对'] == '否'].copy()
+    # 合并两个结果（垂直合并）
+    cost_unchecked = pd.concat([recent_unchecked, pending_unchecked], ignore_index=True)
+    # 去重
+    isCost = cost_unchecked.drop_duplicates()
     # 没有待核对的记录则不发送
     if recent_records.empty and pending_records.empty:
         print("没有需要核对的工资记录")
@@ -299,8 +313,10 @@ def send_complete_salary_report(final_df,github_df1,hours):
         completed_records.loc[:, '状态'] = '已完成'
     if not not_submitted.empty:
         not_submitted.loc[:, '状态'] = '未提交'
+    if not isCost.empty:
+        isCost.loc[:, '状态'] = '成本未确认'
     # 合并所有记录
-    all_records = pd.concat([recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
+    all_records = pd.concat([isCost, pending_records, completed_records,not_submitted], ignore_index=True)
 
     # 格式化时间列
     time_format = '%Y-%m-%d %H:%M'
@@ -320,11 +336,31 @@ def send_complete_salary_report(final_df,github_df1,hours):
         now.replace(hour=9, minute=0, second=0, microsecond=0)
     ]
     is_scheduled_time = any(abs(now - scheduled_time) <= time_tolerance for scheduled_time in scheduled_times)
+    # 检查当前时间是否为整点（允许±5分钟误差）
+    is_near_hour = (now.minute <= 5) or (now.minute >= 55)
 
+    if is_near_hour:
+        # 分组按核对人发送邮件（仅满足条件才发）
+        for checker, group in all_records.groupby('核对人'):
+            has_new = (group['状态'] == '待核对（新提交）').any()
 
-    # 分组按核对人发送邮件（仅满足条件才发）
-    for checker, group in all_records.groupby('核对人'):
-        has_new = (group['状态'] == '待核对（新提交）').any()
+            if has_new or is_scheduled_time:
+                # 从github_df1中查找邮箱
+                to_email = github_df1.loc[github_df1['核对人'] == checker, '邮箱'].values
+                if len(to_email) == 0:
+                    print(f"未找到 {checker} 的邮箱地址，跳过发送")
+                    continue
+                to_email = to_email[0]
+                html_content = create_status_html(group)
+                send_salary_reminder(
+                    to_email=to_email,
+                    content_table=html_content,
+                    subject=f"【您的待核对】{now.strftime('%m-%d')} "
+                )
+            else:
+                print(f"{checker} 无需发送邮件（无新增，非定时）")
+    for checker, group in all_records.groupby('BG'):
+        has_new = (group['状态'] == '成本未确认').any()
 
         if has_new or is_scheduled_time:
             # 从github_df1中查找邮箱
@@ -337,10 +373,11 @@ def send_complete_salary_report(final_df,github_df1,hours):
             send_salary_reminder(
                 to_email=to_email,
                 content_table=html_content,
-                subject=f"【您的待核对】{now.strftime('%m-%d')} "
+                subject=f"【{checker}工资核对进度】{now.strftime('%m-%d')}"
             )
         else:
             print(f"{checker} 无需发送邮件（无新增，非定时）")
+
     return True
 
 def create_status_html(df):
@@ -355,6 +392,7 @@ def create_status_html(df):
     """
     # 按状态分组
     status_groups = {
+        '成本未确认的': df[df['状态'] == '成本未确认'],
         '待核对（新提交）': df[df['状态'] == '待核对（新提交）'],
         '待核对（历史未完成）': df[df['状态'] == '待核对（历史未完成）'],
         '已完成': df[df['状态'] == '已完成'],
@@ -456,7 +494,6 @@ def run_salary_check_process(pat):
     salary_month = get_last_month_str()
     print(f" - 获取工资数据：{salary_month}")
     salary_df = get_salary_data(salary_month)
-
     # 2. 获取GitHub上的核对人信息（PAT 应该来自安全来源）
     print(" - 获取 GitHub 信息")
     github_df = get_github_excel(pat)
@@ -474,7 +511,6 @@ def run_salary_check_process(pat):
 # 使用示例
 if __name__ == "__main__":
     github_pat = os.getenv("EXCEL_GITHUB_PAT")
-    print("asdd")
     if not github_pat:
         print("asd")
         raise ValueError("请设置 GITHUB_PAT 环境变量")
