@@ -350,13 +350,14 @@ def send_complete_salary_report(final_df,github_df1,hours):
                 if len(to_email) == 0:
                     print(f"未找到 {checker} 的邮箱地址，跳过发送")
                     continue
-                to_email = to_email[0]
-                html_content = create_status_html(group)
-                send_salary_reminder(
-                    to_email=to_email,
-                    content_table=html_content,
-                    subject=f"【您的待核对】{now.strftime('%m-%d')} "
-                )
+                # to_email = to_email[0]
+                for emails in to_email:
+                    html_content = create_status_html(group)
+                    send_salary_reminder(
+                        to_email=emails,
+                        content_table=html_content,
+                        subject=f"【您的待核对】{now.strftime('%m-%d')} "
+                    )
             else:
                 print(f"{checker} 无需发送邮件（无新增，非定时）")
     for checker, group in all_records.groupby('BG'):
@@ -368,13 +369,14 @@ def send_complete_salary_report(final_df,github_df1,hours):
             if len(to_email) == 0:
                 print(f"未找到 {checker} 的邮箱地址，跳过发送")
                 continue
-            to_email = to_email[0]
-            html_content = create_status_html(group)
-            send_salary_reminder(
-                to_email=to_email,
-                content_table=html_content,
-                subject=f"【{checker}工资核对进度】{now.strftime('%m-%d')}"
-            )
+            # to_email = to_email[0]
+            for emails in to_email:
+                html_content = create_status_html(group)
+                send_salary_reminder(
+                    to_email=emails,
+                    content_table=html_content,
+                    subject=f"【{checker}工资核对进度】{now.strftime('%m-%d')}"
+                )
         else:
             print(f"{checker} 无需发送邮件（无新增，非定时）")
 
@@ -511,6 +513,8 @@ def run_salary_check_process(pat):
 # 使用示例
 if __name__ == "__main__":
     github_pat = os.getenv("EXCEL_GITHUB_PAT")
+
+    print("asdd")
     if not github_pat:
         print("asd")
         raise ValueError("请设置 GITHUB_PAT 环境变量")
