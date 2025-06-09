@@ -316,7 +316,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
     if not isCost.empty:
         isCost.loc[:, '状态'] = '成本未确认'
     # 合并所有记录
-    all_records = pd.concat([isCost, pending_records, completed_records,not_submitted], ignore_index=True)
+    all_records = pd.concat([isCost,recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
 
     # 格式化时间列
     time_format = '%Y-%m-%d %H:%M'
