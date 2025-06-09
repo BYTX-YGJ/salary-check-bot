@@ -331,7 +331,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
 
     # 设置北京时区
     now = datetime.now()+ timedelta(hours=8)
-    time_tolerance = timedelta(minutes=30)
+    time_tolerance = timedelta(minutes=10)
     scheduled_times = [
         now.replace(hour=9, minute=0, second=0, microsecond=0)
     ]
