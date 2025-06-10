@@ -150,7 +150,7 @@ def get_salary_data(salary_month):
 
         # 将'成本是否核对'列中的空值转为'否'
         if '成本是否核对' in df.columns:
-            df['成本是否核对'] = df['成本是否核对'].fillna('否')
+            df['成本是否核对'] = df['成本是否核对'].fillna('未核对')
 
         # 6. 筛选行（排除特定项目组）
         filter_condition = (
@@ -292,9 +292,9 @@ def send_complete_salary_report(final_df,github_df1,hours):
 
     # 5. 成本未核对的
     # 从 recent_records 中筛选成本未核对的记录
-    recent_unchecked = recent_records[recent_records['成本是否核对'] == '否'].copy()
+    recent_unchecked = recent_records[recent_records['成本是否核对'] == '未核对'].copy()
     # 从 pending_records 中筛选成本未核对的记录
-    pending_unchecked = pending_records[pending_records['成本是否核对'] == '否'].copy()
+    pending_unchecked = pending_records[pending_records['成本是否核对'] == '未核对'].copy()
     # 合并两个结果（垂直合并）
     cost_unchecked = pd.concat([recent_unchecked, pending_unchecked], ignore_index=True)
     # 去重
