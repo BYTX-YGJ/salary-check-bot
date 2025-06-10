@@ -299,6 +299,16 @@ def send_complete_salary_report(final_df,github_df1,hours):
     cost_unchecked = pd.concat([recent_unchecked, pending_unchecked], ignore_index=True)
     # 去重
     isCost = cost_unchecked.drop_duplicates()
+
+    # 5. 成本未核对的
+    # 从 recent_records 中筛选成本未核对的记录
+    recent_notunchecked = recent_records[recent_records['成本是否核对'] == '否'].copy()
+    # 从 pending_records 中筛选成本未核对的记录
+    pending_notunchecked = pending_records[pending_records['成本是否核对'] == '否'].copy()
+    # 合并两个结果（垂直合并）
+    cost_notunchecked = pd.concat([recent_notunchecked, pending_notunchecked], ignore_index=True)
+    # 去重
+    isnotCost = cost_notunchecked.drop_duplicates()
     # 没有待核对的记录则不发送
     if recent_records.empty and pending_records.empty:
         print("没有需要核对的工资记录")
@@ -315,8 +325,10 @@ def send_complete_salary_report(final_df,github_df1,hours):
         not_submitted.loc[:, '状态'] = '未提交'
     if not isCost.empty:
         isCost.loc[:, '状态'] = '成本未确认'
+    if not isCost.empty:
+        isnotCost.loc[:, '状态'] = '成本未通过'
     # 合并所有记录
-    all_records = pd.concat([isCost,recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
+    all_records = pd.concat([isCost,isnotCost,recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
 
     # 格式化时间列
     time_format = '%Y-%m-%d %H:%M'
@@ -395,6 +407,7 @@ def create_status_html(df):
     # 按状态分组
     status_groups = {
         '成本未确认的': df[df['状态'] == '成本未确认'],
+        '成本未通过的': df[df['状态'] == '成本未通过'],
         '待核对（新提交）': df[df['状态'] == '待核对（新提交）'],
         '待核对（历史未完成）': df[df['状态'] == '待核对（历史未完成）'],
         '已完成': df[df['状态'] == '已完成'],
