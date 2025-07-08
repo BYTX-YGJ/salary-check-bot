@@ -325,7 +325,7 @@ def send_complete_salary_report(final_df,github_df1,hours):
         not_submitted.loc[:, '状态'] = '未提交'
     if not isCost.empty:
         isCost.loc[:, '状态'] = '成本未确认'
-    if not isCost.empty:
+    if not isnotCost.empty:
         isnotCost.loc[:, '状态'] = '成本未通过'
     # 合并所有记录
     all_records = pd.concat([isCost,isnotCost,recent_records, pending_records, completed_records,not_submitted], ignore_index=True)
