@@ -147,10 +147,20 @@ def get_salary_data(salary_month):
         df['工资月份'] = pd.to_datetime(df['工资月份'])
         df['上传时间'] = pd.to_datetime(df['上传时间'])
         df['终版上传时间'] = pd.to_datetime(df['终版上传时间'], errors='coerce')  # 处理可能的空值
+        df = df.rename(columns={'成本是否核对': '是否推送', '确认': '成本是否核对'})
 
         # 将'成本是否核对'列中的空值转为'否'
         if '成本是否核对' in df.columns:
             df['成本是否核对'] = df['成本是否核对'].fillna('未核对')
+            # 替换数值为对应的文本
+        df['成本是否核对'] = df['成本是否核对'].replace({
+            0: '未核对',
+            1: '已通过',
+            2: '否',
+            '0': '未核对',  # 如果数据是字符串格式的 '0', '1', '2'
+            '1': '已通过',
+            '2': '否'
+        })
 
         # 6. 筛选行（排除特定项目组）
         filter_condition = (
