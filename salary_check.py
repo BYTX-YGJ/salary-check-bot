@@ -390,7 +390,8 @@ def send_complete_salary_report(final_df,github_df1,hours):
         # 1. 筛选出“成本未确认”的记录
         unconfirmed = group[group['状态'] == '成本未确认']
         # 2. 进一步筛选出最近30分钟内上传的记录
-        recent_unconfirmed = unconfirmed[unconfirmed['上传时间'] >= (now - timedelta(minutes=30))]
+        # recent_unconfirmed = unconfirmed[unconfirmed['上传时间'] >= (now - timedelta(minutes=30))]
+        recent_unconfirmed = unconfirmed[pd.to_datetime(unconfirmed['上传时间']) >= (now - timedelta(minutes=30))]
 
         if not recent_unconfirmed.empty or is_scheduled_time:
             # 从github_df1中查找邮箱
