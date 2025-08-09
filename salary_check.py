@@ -383,9 +383,16 @@ def send_complete_salary_report(final_df,github_df1,hours):
             else:
                 print(f"{checker} 无需发送邮件（无新增，非定时）")
     for checker, group in all_records.groupby('BG'):
-        has_new = (group['状态'] == '成本未确认').any()
+        # has_new = (group['状态'] == '成本未确认').any()
+        # # 2. 检查这些记录的上传时间是否在最近半小时内(has_new and recent_uploads)
+        # recent_uploads = (group['上传时间'] >= (now - timedelta(minutes=30))).any()
 
-        if has_new or is_scheduled_time:
+        # 1. 筛选出“成本未确认”的记录
+        unconfirmed = group[group['状态'] == '成本未确认']
+        # 2. 进一步筛选出最近30分钟内上传的记录
+        recent_unconfirmed = unconfirmed[unconfirmed['上传时间'] >= (now - timedelta(minutes=30))]
+
+        if not recent_unconfirmed.empty or is_scheduled_time:
             # 从github_df1中查找邮箱
             to_email = github_df1.loc[github_df1['核对人'] == checker, '邮箱'].values
             if len(to_email) == 0:
