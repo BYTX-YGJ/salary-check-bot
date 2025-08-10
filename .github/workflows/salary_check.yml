@@ -23,3 +23,11 @@ jobs:
           SMTP_PORT: "465"
           REPLY_TO: ""
         run: python salary_check.py
+      - name: Trigger data_refresh workflow
+        run: |
+         curl -X POST \
+         -H "Accept: application/vnd.github+json" \
+         -H "Authorization: token ${{ secrets.EXCEL_GITHUB_PAT }}" \
+         https://api.github.com/repos/BYTX-YGJ/salary-check-bot/actions/workflows/data_refresh.yml/dispatches \
+         -d '{"ref":"main"}'
+
