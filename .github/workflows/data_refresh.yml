@@ -36,14 +36,19 @@ jobs:
           EXCEL_GITHUB_PAT: ${{ secrets.EXCEL_GITHUB_PAT }}
         run: python Data_refresh.py
 
-      - name: Commit and push if changed
+      - name: Commit and push output.json if changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.EXCEL_GITHUB_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add output.json
+
           if ! git diff --cached --quiet; then
             git commit -m "自动更新 output.json 文件"
-            git push
+            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/BYTX-YGJ/salary-check-bot.git
+            git push origin HEAD:main
           else
-            echo "No changes to commit"
+            echo "没有文件变动，无需提交"
           fi
