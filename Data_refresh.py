@@ -1,7 +1,7 @@
 import os
 from salary_check import get_last_month_str, get_salary_data, get_github_excel, get_github_excel1, merge_data_by_project
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def refresh_df(pat):
     salary_month = get_last_month_str()
@@ -13,8 +13,11 @@ def refresh_df(pat):
     # 3. 合并 & 发送核对报告
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
-        # 添加当前时间列，列名为'creation_time'
-        final_df['创建时间'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # 获取当前时间并加 8 小时
+        current_time_utc8 = datetime.now() + timedelta(hours=8)
+
+        # 添加到 DataFrame
+        final_df['creation_time'] = current_time_utc8
         # 保存时标准化时间格式
         final_df.to_json('output.json', orient='records', date_format='iso')
     else:
