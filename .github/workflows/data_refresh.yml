@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas openpyxl  # 根据你代码需要
+          pip install pandas openpyxl requests  # 根据你代码需要
 
       - name: Run salary check script
         env:
