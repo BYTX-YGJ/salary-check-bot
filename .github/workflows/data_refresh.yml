@@ -32,7 +32,7 @@ jobs:
 
       - name: Commit and push output.json
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 这是 Actions 自带的 token
+          GITHUB_TOKEN: ${{ secrets.EXCEL_GITHUB_PAT }}  # 这是 Actions 自带的 token
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
