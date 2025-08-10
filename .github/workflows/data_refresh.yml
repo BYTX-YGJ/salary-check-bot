@@ -28,7 +28,7 @@ jobs:
         env:
           EXCEL_GITHUB_PAT: ${{ secrets.EXCEL_GITHUB_PAT }}
         run: |
-          python refresh_salary.py
+          python Data_refresh.py
 
       - name: Commit and push output.json
         env:
