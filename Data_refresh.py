@@ -14,7 +14,7 @@ def refresh_df(pat):
     if not salary_df.empty:
         final_df = merge_data_by_project(salary_df, github_df)
         # 添加当前时间列，列名为'creation_time'
-        final_df['creation_time'] = datetime.now()
+        final_df['创建时间'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         # 保存时标准化时间格式
         final_df.to_json('output.json', orient='records', date_format='iso')
     else:
