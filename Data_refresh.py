@@ -14,8 +14,6 @@ def refresh_df(pat):
         final_df = merge_data_by_project(salary_df, github_df)
         # 保存时标准化时间格式
         final_df.to_json('output.json', orient='records', date_format='iso')
-        df = pd.read_json('output.json', orient='records')
-        print(df)
     else:
         print("❗ 没有有效的工资数据可供处理")
 

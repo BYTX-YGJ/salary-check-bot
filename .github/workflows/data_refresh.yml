@@ -1,20 +1,49 @@
-name: json data refresh
+name: Refresh Salary Data and Commit
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
 
 jobs:
-  run-script:
+  refresh-and-commit:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # 允许在同一个 workflow 里推送代码
+          persist-credentials: false
+
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run data refresh
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl  # 根据你代码需要
+
+      - name: Run salary check script
         env:
           EXCEL_GITHUB_PAT: ${{ secrets.EXCEL_GITHUB_PAT }}
-        run: python Data_refresh.py
+        run: |
+          python refresh_salary.py
+
+      - name: Commit and push output.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 这是 Actions 自带的 token
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add output.json
+
+          # 只有有变动时才提交
+          if ! git diff --cached --quiet; then
+            git commit -m "自动更新 output.json 文件"
+            # 使用 HTTPS 协议，token 通过环境变量传入
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "没有文件变动，无需提交"
+          fi
