@@ -9,27 +9,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 缓存 Python 依赖
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
+        uses: actions/checkout@v3
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          cache: 'pip'  # 双重缓存保险
 
-      # 安装依赖（从缓存命中时几乎 0 秒）
       - name: Install dependencies
         run: |
-          pip install --no-cache-dir -r requirements.txt
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl requests
 
       - name: Run Data_refresh.py script
         env:
