@@ -142,7 +142,6 @@ def get_salary_data(salary_month):
             '项目组': 'str',
             '上传人': 'str',
             '终版上传人': 'str',
-            '备注': 'str'
         })
         df['工资月份'] = pd.to_datetime(df['工资月份'])
         df['上传时间'] = pd.to_datetime(df['上传时间'])
