@@ -146,7 +146,7 @@ def get_salary_data(salary_month):
         df['工资月份'] = pd.to_datetime(df['工资月份'])
         df['上传时间'] = pd.to_datetime(df['上传时间'])
         df['终版上传时间'] = pd.to_datetime(df['终版上传时间'], errors='coerce')  # 处理可能的空值
-        df = df.rename(columns={'成本是否核对': '是否推送', '确认': '成本是否核对'})
+        df = df.rename(columns={'是否核对': '成本是否核对'})
 
         # 将'成本是否核对'列中的空值转为'否'
         if '成本是否核对' in df.columns:
